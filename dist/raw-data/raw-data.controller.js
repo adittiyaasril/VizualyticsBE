@@ -16,7 +16,7 @@ exports.RawDataController = void 0;
 const common_1 = require("@nestjs/common");
 const multer_1 = require("@nestjs/platform-express/multer");
 const zlib = require("zlib");
-const csv = require("csv-parser");
+const sync_1 = require("csv-parse/sync");
 const raw_data_service_1 = require("./raw-data.service");
 const stream_1 = require("stream");
 let RawDataController = class RawDataController {
@@ -27,20 +27,24 @@ let RawDataController = class RawDataController {
         const results = [];
         if (file.originalname.endsWith('.gz')) {
             const unzipStream = zlib.createGunzip();
-            const parseStream = csv();
-            stream_1.Readable.from(file.buffer)
-                .pipe(unzipStream)
-                .pipe(parseStream)
-                .on('data', (data) => {
-                const rawData = {
-                    resultTime: new Date(data['Result Time']),
-                    enodebId: (data['Object Name'].match(/eNodeB ID=(\d+)/) || [])[1] || '',
-                    cellId: (data['Object Name'].match(/Local Cell ID=(\d+)/) || [])[1] || '',
-                    availDur: parseInt(data['L.Cell.Avail.Dur']) || 0,
-                };
-                results.push(rawData);
+            const chunks = [];
+            unzipStream
+                .on('data', (chunk) => {
+                chunks.push(chunk);
             })
                 .on('end', async () => {
+                const fileContents = Buffer.concat(chunks).toString();
+                const parsedData = (0, sync_1.parse)(fileContents, { columns: true });
+                for (const data of parsedData) {
+                    const rawData = {
+                        resultTime: new Date(data['Result Time']),
+                        enodebId: (data['Object Name'].match(/eNodeB ID=(\d+)/) || [])[1] || '',
+                        cellId: (data['Object Name'].match(/Local Cell ID=(\d+)/) || [])[1] ||
+                            '',
+                        availDur: parseInt(data['L.Cell.Avail.Dur']) || 0,
+                    };
+                    results.push(rawData);
+                }
                 try {
                     await this.rawDataService.create(results);
                 }
@@ -49,6 +53,7 @@ let RawDataController = class RawDataController {
                     throw new Error('Failed to insert data into MongoDB');
                 }
             });
+            stream_1.Readable.from(file.buffer).pipe(unzipStream);
             return 'File uploaded and data inserted successfully.';
         }
         else {

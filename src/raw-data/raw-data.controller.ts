@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express/multer';
 import * as zlib from 'zlib';
-import * as csv from 'csv-parser';
+import { parse } from 'csv-parse/sync';
 import { RawDataService } from './raw-data.service';
 import { Readable } from 'stream';
 
@@ -23,24 +23,30 @@ export class RawDataController {
 
     if (file.originalname.endsWith('.gz')) {
       const unzipStream = zlib.createGunzip();
-      const parseStream = csv();
+      const chunks = [];
 
-      Readable.from(file.buffer)
-        .pipe(unzipStream)
-        .pipe(parseStream)
-        .on('data', (data) => {
-          const rawData = {
-            resultTime: new Date(data['Result Time']),
-            enodebId:
-              (data['Object Name'].match(/eNodeB ID=(\d+)/) || [])[1] || '',
-            cellId:
-              (data['Object Name'].match(/Local Cell ID=(\d+)/) || [])[1] || '',
-            availDur: parseInt(data['L.Cell.Avail.Dur']) || 0,
-          };
-
-          results.push(rawData);
+      unzipStream
+        .on('data', (chunk) => {
+          chunks.push(chunk);
         })
         .on('end', async () => {
+          const fileContents = Buffer.concat(chunks).toString();
+          const parsedData = parse(fileContents, { columns: true });
+
+          for (const data of parsedData) {
+            const rawData = {
+              resultTime: new Date(data['Result Time']),
+              enodebId:
+                (data['Object Name'].match(/eNodeB ID=(\d+)/) || [])[1] || '',
+              cellId:
+                (data['Object Name'].match(/Local Cell ID=(\d+)/) || [])[1] ||
+                '',
+              availDur: parseInt(data['L.Cell.Avail.Dur']) || 0,
+            };
+
+            results.push(rawData);
+          }
+
           try {
             await this.rawDataService.create(results);
           } catch (error) {
@@ -48,7 +54,7 @@ export class RawDataController {
             throw new Error('Failed to insert data into MongoDB');
           }
         });
-
+      Readable.from(file.buffer).pipe(unzipStream);
       return 'File uploaded and data inserted successfully.';
     } else {
       console.error('Uploaded file is not a .gz file.');
