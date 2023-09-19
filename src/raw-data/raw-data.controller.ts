@@ -7,10 +7,10 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express/multer';
-import * as fs from 'fs';
 import * as zlib from 'zlib';
 import * as csvParser from 'csv-parser';
 import { RawDataService } from './raw-data.service';
+import { Readable } from 'stream';
 
 @Controller('raw-data')
 export class RawDataController {
@@ -22,12 +22,12 @@ export class RawDataController {
     const results = [];
 
     if (file.originalname.endsWith('.gz')) {
-      const gzStream = fs.createReadStream(file.path);
       const unzipStream = zlib.createGunzip();
+      const parseStream = csvParser();
 
-      gzStream
+      Readable.from(file.buffer)
         .pipe(unzipStream)
-        .pipe(csvParser())
+        .pipe(parseStream)
         .on('data', (data) => {
           const rawData = {
             resultTime: new Date(data['Result Time']),
@@ -55,6 +55,7 @@ export class RawDataController {
       throw new Error('Invalid file format. Please upload a .gz file.');
     }
   }
+
   @Get('graph')
   async getGraph(
     @Query('enodebId') enodebId: string,

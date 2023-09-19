@@ -7,12 +7,7 @@ import { MulterModule } from '@nestjs/platform-express';
 
 @Module({
   controllers: [RawDataController],
-  imports: [
-    MulterModule.register({
-      dest: './uploads',
-    }),
-    DatabaseModule,
-  ],
+  imports: [MulterModule.register({}), DatabaseModule],
   providers: [RawDataService, ...rawDataProviders],
 })
 export class RawDataModule {}
