@@ -16,7 +16,7 @@ exports.RawDataController = void 0;
 const common_1 = require("@nestjs/common");
 const multer_1 = require("@nestjs/platform-express/multer");
 const zlib = require("zlib");
-const csvParser = require("csv-parser");
+const csv = require("csv-parser");
 const raw_data_service_1 = require("./raw-data.service");
 const stream_1 = require("stream");
 let RawDataController = class RawDataController {
@@ -27,7 +27,7 @@ let RawDataController = class RawDataController {
         const results = [];
         if (file.originalname.endsWith('.gz')) {
             const unzipStream = zlib.createGunzip();
-            const parseStream = csvParser();
+            const parseStream = csv();
             stream_1.Readable.from(file.buffer)
                 .pipe(unzipStream)
                 .pipe(parseStream)

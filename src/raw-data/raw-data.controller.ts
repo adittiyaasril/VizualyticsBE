@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express/multer';
 import * as zlib from 'zlib';
-import * as csvParser from 'csv-parser';
+import * as csv from 'csv-parser';
 import { RawDataService } from './raw-data.service';
 import { Readable } from 'stream';
 
@@ -23,7 +23,7 @@ export class RawDataController {
 
     if (file.originalname.endsWith('.gz')) {
       const unzipStream = zlib.createGunzip();
-      const parseStream = csvParser();
+      const parseStream = csv();
 
       Readable.from(file.buffer)
         .pipe(unzipStream)
