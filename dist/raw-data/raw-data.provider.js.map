@@ -1,0 +1,1 @@
+{"version":3,"file":"raw-data.provider.js","sourceRoot":"","sources":["../../src/raw-data/raw-data.provider.ts"],"names":[],"mappings":";;;AACA,+DAA0D;AAE7C,QAAA,gBAAgB,GAAG;IAC9B;QACE,OAAO,EAAE,SAAS;QAClB,UAAU,EAAE,CAAC,UAAsB,EAAE,EAAE,CACrC,UAAU,CAAC,KAAK,CAAC,SAAS,EAAE,+BAAa,CAAC;QAC5C,MAAM,EAAE,CAAC,qBAAqB,CAAC;KAChC;CACF,CAAC"}
